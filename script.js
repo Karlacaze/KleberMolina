@@ -37,21 +37,20 @@ const projectMedia = {
   },
   foosball: {
     title: 'Mini mechatronic foosball table',
+    model: 'assets/models/foosball-concept.glb',
+    modelIsPlaceholder: false,
     images: [
       { src: 'assets/images/foosball/finished_result.jpg', alt: 'Finished foosball robot with joystick controller and LCD scoreboard', caption: '01 / Finished prototype · joystick controller and LCD score' },
-      { src: 'assets/images/foosball/ensamble_completo.png', alt: 'Complete CAD assembly of the foosball table', caption: '02 / Full CAD assembly' },
-      { src: 'assets/images/foosball/engranes.png', alt: 'CAD of the custom gear system', caption: '03 / Custom gear system for faster player movement' },
-      { src: 'assets/images/foosball/golpeador.png', alt: 'CAD of the solenoid striker mechanism', caption: '04 / Solenoid striker mechanism' },
-      { src: 'assets/images/foosball/finished_result_inside.jpg', alt: 'Inside the foosball table showing the mechanism', caption: '05 / Inside the table' },
-      { src: 'assets/images/foosball/inside_arduino.jpg', alt: 'Arduino and stepper driver wiring inside the case', caption: '06 / Control electronics' },
-      { src: 'assets/images/foosball/inside_powerAC_DC.jpg', alt: 'Custom AC–DC power supply with 12 V and 5 V outputs', caption: '07 / Custom AC–DC supply · 12 V / 5 V' },
-      { src: 'assets/images/foosball/circuits_schematic.png', alt: 'Circuit schematic of the foosball control system', caption: '08 / Circuit schematic' }
+      { src: 'assets/images/foosball/finished_result_inside.jpg', alt: 'Inside the foosball table showing the mechanism', caption: '02 / Inside the table' },
+      { src: 'assets/images/foosball/inside_arduino.jpg', alt: 'Arduino and stepper driver wiring inside the case', caption: '03 / Control electronics' },
+      { src: 'assets/images/foosball/inside_powerAC_DC.jpg', alt: 'Custom AC–DC power supply with 12 V and 5 V outputs', caption: '04 / Custom AC–DC supply · 12 V / 5 V' },
+      { src: 'assets/images/foosball/circuits_schematic.png', alt: 'Circuit schematic of the foosball control system', caption: '05 / Circuit schematic' }
     ]
   },
   frequency: {
     title: 'AC frequency measurement system',
+    featured: { src: 'assets/images/frequency-analysis/box_itself_irl_no_background.png', alt: 'Manufactured MDF case of the AC frequency measurement system', caption: 'Manufactured MDF case' },
     images: [
-      { src: 'assets/images/frequency-analysis/box_itself_irl.jpg', alt: 'Manufactured MDF case of the measurement system', caption: '01 / Manufactured MDF case' },
       { src: 'assets/images/frequency-analysis/graph_voltage_vs_time.png', alt: 'Measured signal plotted over time', caption: '02 / Live signal acquisition · Matplotlib' },
       { src: 'assets/images/frequency-analysis/mass_center_of_frecuency_graph.png', alt: 'Frequency estimate tracked across measurements', caption: '03 / Frequency estimate across measurements' },
       { src: 'assets/images/frequency-analysis/structural_analysis_view.png', alt: 'SolidWorks structural analysis of the case', caption: '04 / Structural analysis · SolidWorks' },
@@ -127,12 +126,14 @@ document.querySelectorAll('[data-project]').forEach(article => {
   const data = projectMedia[key];
   if (!data) return;
   const hasModel = Boolean(data.model) && !data.modelIsPlaceholder;
+  const modelOnly = hasModel && data.images.length === 0;
   const media = article.querySelector('.project-media');
   if (data.featured) {
     [data.featured, data.secondaryFeatured].filter(Boolean).forEach(item => {
       const featured = element('div', 'ecu-featured');
       const image = element('img'); image.src = item.src; image.alt = item.alt; image.loading = 'lazy';
       featured.append(image);
+      if (key === 'frequency' && item === data.featured) featured.append(element('figcaption', 'ecu-featured-note', 'The Arduino shown in this image was generated with AI because it had been removed from the original photo.'));
       media.append(featured);
     });
     const previews = element('div', 'ecu-previews');
@@ -176,7 +177,7 @@ document.querySelectorAll('[data-project]').forEach(article => {
       }
       previews.append(figure);
     });
-    (key === 'fred' ? media : article.querySelector('.project-copy')).append(previews);
+    (key === 'fred' || key === 'frequency' || key === 'ecu' ? article.querySelector('.project-copy') : media).append(previews);
     return;
   }
   const tabs = element('div', 'media-tabs');
@@ -205,7 +206,10 @@ document.querySelectorAll('[data-project]').forEach(article => {
     const image = element('img'); image.src = item.video ? item.poster : item.src; image.alt = ''; image.loading = 'lazy';
     thumb.append(image);
     if (item.video) thumb.append(element('span', 'play-badge', '▶'));
-    thumb.addEventListener('click', () => selectImage(index)); thumbnails.append(thumb); return thumb;
+    thumb.addEventListener('click', () => {
+      if (key === 'foosball' && !item.video) { openImage(item.src, item.alt, item.caption); return; }
+      selectImage(index);
+    }); thumbnails.append(thumb); return thumb;
   });
   function selectImage(index) {
     selected = index; const item = data.images[index];
@@ -226,10 +230,11 @@ document.querySelectorAll('[data-project]').forEach(article => {
   mainButton.addEventListener('click', () => { const item = data.images[selected]; openImage(item.src, item.alt, item.caption); });
   function showModel(active) {
     photosButton.setAttribute('aria-pressed', String(!active)); modelButton.setAttribute('aria-pressed', String(active));
-    const isVideo = Boolean(data.images[selected].video);
+    const item = data.images[selected];
+    const isVideo = Boolean(item?.video);
     mainButton.hidden = active || isVideo; mainVideo.hidden = active || !isVideo;
     if (active) mainVideo.pause();
-    thumbnails.hidden = active; modelPanel.hidden = !active; controls.hidden = !active;
+    thumbnails.hidden = active && key !== 'foosball'; modelPanel.hidden = !active; controls.hidden = !active;
     caption.textContent = active ? 'Drag to orbit · scroll or pinch to zoom · use buttons to rotate' : data.images[selected].caption;
   }
   photosButton.addEventListener('click', () => showModel(false));
@@ -263,8 +268,38 @@ document.querySelectorAll('[data-project]').forEach(article => {
     viewer.cameraOrbit = `${orbit.theta + degrees * Math.PI / 180}rad ${orbit.phi}rad ${orbit.radius}m`;
   }
   left.addEventListener('click', () => rotate(-30)); right.addEventListener('click', () => rotate(30));
-  if (hasModel) media.append(tabs);
-  media.append(stage, caption, thumbnails);
+  if (hasModel) media.append(element('h4', 'media-model-title', 'Interactive 3D model · drag to rotate · scroll to zoom'), tabs);
+  media.append(stage, caption);
+  (key === 'foosball' ? article.querySelector('.project-copy') : media).append(thumbnails);
   if (hasModel) media.append(controls);
-  selectImage(0);
+  if (modelOnly) {
+    tabs.hidden = true;
+    thumbnails.hidden = true;
+    modelButton.click();
+  } else {
+    selectImage(0);
+    if (key === 'foosball') modelButton.click();
+  }
 });
+
+/* The detailed portfolio copy supersedes the earlier condensed paragraphs. */
+const condensedParagraphs = { ecu: 9, fred: 10, tinyml: 6, tractor: 6, foosball: 6, frequency: 0 };
+document.querySelectorAll('[data-project], #project-tractor').forEach(article => {
+  const key = article.dataset.project || (article.id === 'project-tractor' ? 'tractor' : '');
+  const count = condensedParagraphs[key] || 0;
+  article.querySelectorAll('.project-copy > .project-text').forEach((paragraph, index) => {
+    if (index < count) paragraph.hidden = true;
+  });
+  if (key === 'frequency') {
+    const paragraphs = article.querySelectorAll('.project-copy > .project-text');
+    [1, 2, 3].forEach(index => { if (paragraphs[index]) paragraphs[index].hidden = true; });
+  }
+});
+
+document.querySelectorAll('.role').forEach(role => {
+  role.querySelectorAll('.role-body > p:not(.role-title)').forEach((paragraph, index) => {
+    if (index < 2) paragraph.hidden = true;
+  });
+});
+
+if (document.querySelector('model-viewer[data-standalone-model]')) loadViewerLibrary();
