@@ -3,14 +3,16 @@
 const projectMedia = {
   ecu: {
     title: 'ECU power management & testing system',
+    featured: { src: 'assets/images/ECU_1/final_pcbs_top_view_background_removed.png', alt: 'Final assembled ECU power management PCBs with the background removed', caption: 'Final ECU Power Management PCBs' },
+    secondaryFeatured: { src: 'assets/images/ECU_1/pcb_cad_3d_view.png', alt: 'KiCad 3D view of the ECU power management PCB' },
     images: [
-      { src: 'assets/images/ECU/final_pcbs_top_view.jpeg', alt: 'Four assembled ECU control PCBs in enclosures on the test bench', caption: '01 / Final system · four replaceable boards, one per ECU' },
-      { video: 'assets/images/ECU/final_test_with_1_ECU_Video.mp4', poster: 'assets/images/ECU/final_pcbs_top_view.jpeg', alt: 'Video of the final test with a real ECU', caption: '02 / Video · final test with a real ECU' },
-      { src: 'assets/images/ECU/pcb_cad_3d_view.jpeg', alt: 'KiCad 3D render of the ECU control PCB', caption: '03 / PCB layout · KiCad 3D view' },
-      { src: 'assets/images/ECU/Kicad_schematic.png', alt: 'KiCad schematic of the ECU power switching circuit', caption: '04 / Schematic · KiCad' },
-      { src: 'assets/images/ECU/first_circuit_falstadt_simulation.png', alt: 'Falstad simulation of the first switching circuit', caption: '05 / Early circuit simulation · Falstad' },
-      { src: 'assets/images/ECU/Raw_protoboard_circuit.jpeg', alt: 'First protoboard version of the circuit', caption: '06 / First protoboard prototype' },
-      { src: 'assets/images/ECU/gui_test.jpg', alt: 'Python test interface used with the system', caption: '07 / Python test interface' }
+      { src: 'assets/images/ECU_1/certificate_of_participation_expo_ingenierias.png', alt: 'Certificate of participation in ExpoIngenierías', caption: 'Exposition Certificate' },
+      { src: 'assets/images/ECU_1/First_circuit_schematic.png', alt: 'First circuit test in LTSpice', caption: 'First LTSpice Test' },
+      { src: 'assets/images/ECU_1/Raw_protoboard_circuit.jpeg', alt: 'First circuit assembled on a protoboard', caption: 'First Protoboard Test' },
+      { src: 'assets/images/ECU_1/Kicad_schematic.png', alt: 'KiCad schematic of the ECU power management circuit', caption: 'KiCad Schematic' },
+      { src: 'assets/images/ECU_1/kicad_3d_view_top_pcb.png', alt: 'Top view of the PCB in KiCad', caption: 'PCB Top View' },
+      { src: 'assets/images/ECU_1/actual_iternational_ecu.jpeg', alt: 'International truck ECU used to test the system', caption: 'International Truck ECU Used for Testing' },
+      { video: 'assets/images/ECU_1/video_demostration.mp4', alt: 'Short video demonstration of the ECU testing system', caption: 'Short Demonstration' }
     ]
   },
   tinyml: {
@@ -62,11 +64,21 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && navigation.classList.contains('is-open')) { closeMenu(); menuButton.focus(); }
 });
 const dialog = document.getElementById('image-dialog');
+const dialogVideo = document.createElement('video');
+dialogVideo.controls = true; dialogVideo.preload = 'none'; dialogVideo.playsInline = true; dialogVideo.hidden = true;
+dialog.querySelector('img').after(dialogVideo);
+dialog.addEventListener('close', () => { dialogVideo.pause(); dialogVideo.removeAttribute('src'); dialogVideo.load(); });
 dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
 function openImage(src, alt, caption) {
-  const image = dialog.querySelector('img'); image.src = src; image.alt = alt;
+  dialogVideo.pause(); dialogVideo.hidden = true;
+  const image = dialog.querySelector('img'); image.hidden = false; image.src = src; image.alt = alt;
   document.getElementById('dialog-caption').textContent = caption; dialog.showModal();
+}
+function openVideo(item) {
+  dialog.querySelector('img').hidden = true;
+  dialogVideo.hidden = false; dialogVideo.src = item.video; dialogVideo.setAttribute('aria-label', item.alt);
+  document.getElementById('dialog-caption').textContent = item.caption; dialog.showModal();
 }
 document.querySelectorAll('.zoomable').forEach(zoom => {
   const image = zoom.querySelector('img');
@@ -103,6 +115,33 @@ document.querySelectorAll('[data-project]').forEach(article => {
   if (!data) return;
   const hasModel = Boolean(data.model) && !data.modelIsPlaceholder;
   const media = article.querySelector('.project-media');
+  if (data.featured) {
+    [data.featured, data.secondaryFeatured].filter(Boolean).forEach(item => {
+      const featured = element('div', 'ecu-featured');
+      const image = element('img'); image.src = item.src; image.alt = item.alt; image.loading = 'lazy';
+      featured.append(image);
+      media.append(featured);
+    });
+    const previews = element('div', 'ecu-previews');
+    previews.setAttribute('role', 'group'); previews.setAttribute('aria-label', `${data.title}: photos and demonstration`);
+    data.images.forEach(item => {
+      const figure = element('figure', 'ecu-preview');
+      const preview = button('ecu-preview-button');
+      preview.setAttribute('aria-label', `${item.video ? 'Play' : 'Enlarge'}: ${item.caption}`);
+      if (item.video) {
+        const video = element('video'); video.src = item.video; video.preload = 'metadata'; video.muted = true; video.playsInline = true;
+        video.setAttribute('aria-hidden', 'true');
+        preview.append(video, element('span', 'play-badge', '▶'));
+      } else {
+        const thumbnail = element('img'); thumbnail.src = item.src; thumbnail.alt = ''; thumbnail.loading = 'lazy';
+        preview.append(thumbnail);
+      }
+      preview.addEventListener('click', () => item.video ? openVideo(item) : openImage(item.src, item.alt, item.caption));
+      figure.append(preview, element('figcaption', '', item.caption)); previews.append(figure);
+    });
+    article.querySelector('.project-copy').append(previews);
+    return;
+  }
   const tabs = element('div', 'media-tabs');
   tabs.setAttribute('role', 'group'); tabs.setAttribute('aria-label', `${data.title}: media type`);
   const photosButton = button('media-tab', 'IMAGES');
