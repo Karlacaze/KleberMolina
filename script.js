@@ -15,13 +15,24 @@ const projectMedia = {
       { video: 'assets/images/ECU_1/video_demostration.mp4', alt: 'Short video demonstration of the ECU testing system', caption: 'Short Demonstration' }
     ]
   },
+  fred: {
+    title: 'Robotic assembly station — MIT FrED Factory',
+    featured: { src: 'assets/images/FredFactory/final_station_3.jpeg', alt: 'MIT FrED Factory Station 3 robotic assembly station', caption: 'MIT FrED Factory Station 3' },
+    images: [
+      { src: 'assets/images/FredFactory/feeding_of_the_joints.jpeg', alt: 'Feeding the joints into the assembly station', caption: '01 / Feeding the joints' },
+      { src: 'assets/images/FredFactory/picking_aluminium_profiles.jpeg', alt: 'Picking aluminium profiles for assembly', caption: '02 / Picking aluminium profiles' },
+      { src: 'assets/images/FredFactory/placing_aluminium_profiles.jpeg', alt: 'Placing aluminium profiles in the assembly station', caption: '03 / Placing aluminium profiles' },
+      { src: 'assets/images/FredFactory/grabing_ventilador.jpeg', alt: 'Grabbing the ventilator component', caption: '04 / Grabbing the ventilator' },
+      { src: 'assets/images/FredFactory/placing_ventilador.jpeg', alt: 'Placing the ventilator component', caption: '05 / Placing the ventilator' }
+    ]
+  },
   tinyml: {
     title: 'Embedded vision & robot control platform',
+    featured: { src: 'assets/images/TinyML/car_no_background.png', alt: 'Tracked TinyML robot with its car-shaped body', caption: 'TinyML autonomous robot platform' },
     images: [
-      { src: 'assets/images/web/tinyml_robot.jpg', alt: 'Tracked robot with Raspberry Pi 5, camera module and motor driver', caption: '01 / Tracked differential-drive robot · Pi Camera at the front' },
-      { src: 'assets/images/web/tinyml_top.jpg', alt: 'Top view of the STM32 Nucleo, MPU9250 and Raspberry Pi 5 integration', caption: '02 / STM32 + Raspberry Pi 5 + MPU9250 integration' },
-      { src: 'assets/images/web/tinyml_stm32_mpu.jpg', alt: 'STM32 Nucleo board wired to an MPU9250 IMU', caption: '03 / STM32 NUCLEO-F446RE with MPU9250 IMU' },
-      { src: 'assets/images/web/tinyml_camera.jpg', alt: 'Raspberry Pi 5 with active cooler and Pi Camera module', caption: '04 / Raspberry Pi 5 and camera for image processing' }
+      { src: 'assets/images/TinyML/top_view_stm32_rasp_integration_and_mpu.jpeg', alt: 'Top view of the STM32 Nucleo, MPU9250 and Raspberry Pi 5 integration', caption: '01 / STM32 + Raspberry Pi 5 + MPU9250 integration', rotate: true },
+      { src: 'assets/images/web/tinyml_stm32_mpu.jpg', alt: 'STM32 Nucleo board wired to an MPU9250 IMU', caption: '02 / STM32 NUCLEO-F446RE with MPU9250 IMU' },
+      { src: 'assets/images/web/tinyml_camera.jpg', alt: 'Raspberry Pi 5 with active cooler and Pi Camera module', caption: '03 / Raspberry Pi 5 and camera for image processing' }
     ]
   },
   foosball: {
@@ -70,12 +81,14 @@ dialog.querySelector('img').after(dialogVideo);
 dialog.addEventListener('close', () => { dialogVideo.pause(); dialogVideo.removeAttribute('src'); dialogVideo.load(); });
 dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-function openImage(src, alt, caption) {
+function openImage(src, alt, caption, rotate = false) {
   dialogVideo.pause(); dialogVideo.hidden = true;
   const image = dialog.querySelector('img'); image.hidden = false; image.src = src; image.alt = alt;
+  dialog.classList.toggle('rotate-counterclockwise', rotate);
   document.getElementById('dialog-caption').textContent = caption; dialog.showModal();
 }
 function openVideo(item) {
+  dialog.classList.remove('rotate-counterclockwise');
   dialog.querySelector('img').hidden = true;
   dialogVideo.hidden = false; dialogVideo.src = item.video; dialogVideo.setAttribute('aria-label', item.alt);
   document.getElementById('dialog-caption').textContent = item.caption; dialog.showModal();
@@ -124,7 +137,7 @@ document.querySelectorAll('[data-project]').forEach(article => {
     });
     const previews = element('div', 'ecu-previews');
     previews.setAttribute('role', 'group'); previews.setAttribute('aria-label', `${data.title}: photos and demonstration`);
-    data.images.forEach(item => {
+    data.images.forEach((item, index) => {
       const figure = element('figure', 'ecu-preview');
       const preview = button('ecu-preview-button');
       preview.setAttribute('aria-label', `${item.video ? 'Play' : 'Enlarge'}: ${item.caption}`);
@@ -134,12 +147,36 @@ document.querySelectorAll('[data-project]').forEach(article => {
         preview.append(video, element('span', 'play-badge', '▶'));
       } else {
         const thumbnail = element('img'); thumbnail.src = item.src; thumbnail.alt = ''; thumbnail.loading = 'lazy';
+        if (item.rotate) thumbnail.classList.add('rotate-counterclockwise');
         preview.append(thumbnail);
       }
-      preview.addEventListener('click', () => item.video ? openVideo(item) : openImage(item.src, item.alt, item.caption));
-      figure.append(preview, element('figcaption', '', item.caption)); previews.append(figure);
+      preview.addEventListener('click', () => item.video ? openVideo(item) : openImage(item.src, item.alt, item.caption, item.rotate));
+      if (key === 'fred') {
+        const visual = element('div', 'fred-preview-visual');
+        visual.append(preview);
+        if (index < data.images.length - 1) {
+          const next = data.images[index + 1];
+          const arrow = element('span', 'fred-process-arrow', '→');
+          arrow.setAttribute('role', 'button');
+          arrow.setAttribute('tabindex', '0');
+          arrow.setAttribute('aria-label', `Open next step: ${next.caption}`);
+          const advance = event => {
+            event.stopPropagation();
+            if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+            if (event.type === 'keydown') event.preventDefault();
+            openImage(next.src, next.alt, next.caption, next.rotate);
+          };
+          arrow.addEventListener('click', advance);
+          arrow.addEventListener('keydown', advance);
+          visual.append(arrow);
+        }
+        figure.append(visual, element('figcaption', '', item.caption));
+      } else {
+        figure.append(preview, element('figcaption', '', item.caption));
+      }
+      previews.append(figure);
     });
-    article.querySelector('.project-copy').append(previews);
+    (key === 'fred' ? media : article.querySelector('.project-copy')).append(previews);
     return;
   }
   const tabs = element('div', 'media-tabs');
